@@ -163,3 +163,29 @@ v1和V2消息组成都是由：消息集合（message Set）以及消息（Messa
 
 
 
+
+
+
+
+
+
+
+
+
+
+### 附录 kafka常用配置参数
+
+#### broker
+
+
+
+#### consumer
+
+- max.poll.interval.ms = 5Minute
+
+- session.timeout.ms
+
+- max.poll.records =500
+
+#### producer
+
