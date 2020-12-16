@@ -222,7 +222,7 @@ spring开箱即用的接口
   13. 统一类型转换服务
   14. ConversionService作为依赖
 
-### 15.2 
+### 15.2 Spring类型转换各自的使用场景
 
 - 基于JavaBeans接口的类型转换实现
   - 基于java.beans.PropertyEditor
@@ -236,6 +236,306 @@ spring开箱即用的接口
 | Bean属性类型转换   | YES                             | YES                          |
 | 外部化属性类型转换 | NO                              | YES                          |
 |                    |                                 |                              |
+
+### 15.3 JavaBeans接口的类型转换：Spring是如何扩展PropertyEditor接口实现类型的转换
+
+- 核心职责
+
+  - 将String类型的内容转化为目标类型的对象
+
+  
+
+- 扩展原理
+  - Spring框架将文本内容传递到PropertyEditor实现的setAsText(String)方法
+  - PropertyEditor#setAsText(String)方法实现将String类型转化为目标类型的对象
+  - 将目标类型的对象传入PropertyEditor#setValue(Object)方法
+  - PropertyEditor#setValue(Object)方法实现需要临时存储传入对象
+  - Spring框架将通过PropertyEditor#getValue()获取类型转换后的对象
+
+
+
+
+
+### 15.4 Spring3 通用类型转换接口
+
+- 普通类型转换接口 - org.springframework.core.convert.converter.Converter<S , T>
+
+  - ```java
+    @Nullable
+    T convert(S source);
+    ```
+
+- 通用类型接口转换 - org.springframework.core.convert.converter.GenericConverter
+
+  - ```java
+    Set<ConvertiblePair> getConvertibleTypes();
+    ```
+
+  - ```java
+    Object convert(@Nullable Object source, TypeDescriptor sourceType, TypeDescriptor targetType);
+    ```
+
+
+
+> 1、GenericConverter通用类型转换接口，支持多类型转化。通常具有更加好的使用范围。
+>
+> 2、Converter 单一类型转换
+
+
+
+
+
+### 15.5 Spring内建类型转换器
+
+- **内建扩展**
+
+  | 转换场景            | 实现类所在报名（package）                    |
+  | ------------------- | -------------------------------------------- |
+  | 日期/时间相关       | org.springframework.format.datetime          |
+  | java8 日期/时间相关 | org.springframework.format.datetime.standard |
+  | 通用实现            | org.springframework.core.convert.support     |
+
+  
+
+### 15.6 Spring GenericConverter比Converter接口更加通用？
+
+
+
+
+
+### 十六章 Spring 泛型
+
+
+
+
+
+### 十七章 Spring事件
+
+
+
+#### 17.1 java事件/监听器编程模型
+
+- java.util.Observable - 观察者源，（被观察的对象）
+
+  ```java
+  package java.util;
+  public class Observable {
+      private boolean changed = false;
+      private Vector<Observer> obs;
+      /** Construct an Observable with zero Observers. */
+      public Observable() {
+          obs = new Vector<>();
+      }
+      public synchronized void addObserver(Observer o) {
+          if (o == null)
+              throw new NullPointerException();
+          if (!obs.contains(o)) {
+              obs.addElement(o);
+          }
+      }
+      public synchronized void deleteObserver(Observer o) {
+          obs.removeElement(o);
+      }
+      public void notifyObservers() {
+          notifyObservers(null);
+      }
+      public void notifyObservers(Object arg) {
+        
+          Object[] arrLocal;
+  
+          synchronized (this) {
+              if (!changed)
+                  return;
+              arrLocal = obs.toArray();
+              clearChanged();
+          }
+  
+          for (int i = arrLocal.length-1; i>=0; i--)
+              ((Observer)arrLocal[i]).update(this, arg);
+      }
+      public synchronized void deleteObservers() {
+          obs.removeAllElements();
+      }
+      protected synchronized void setChanged() {
+          changed = true;
+      }
+      protected synchronized void clearChanged() {
+          changed = false;
+      }
+      public synchronized boolean hasChanged() {
+          return changed;
+      }
+      public synchronized int countObservers() {
+          return obs.size();
+      }
+  }
+  
+  ```
+
+- java.util.Observer - 观察者，java默认为接口
+
+  ```java
+  package java.util;
+  
+  public interface Observer {
+      /**
+       * This method is called whenever the observed object is changed. An
+       * application calls an <tt>Observable</tt> object's
+       * <code>notifyObservers</code> method to have all the object's
+       * observers notified of the change.
+       *
+       * @param   o     the observable object.
+       * @param   arg   an argument passed to the <code>notifyObservers</code>
+       *                 method.
+       */
+      void update(Observable o, Object arg);
+  }
+  
+  ```
+
+- java.util.EventObject - 事件源
+
+- java.util.EventListener - 事件监听者（没有任何实现的接口，作用：标识实现类为事件监听者）
+
+### 17.2 面向接口的事件/监听器设计模式
+
+- 事件/监听场景举例
+
+  | java技术规范    | 事件接口                              | 监听接口                                 |
+  | --------------- | ------------------------------------- | ---------------------------------------- |
+  | JavaBeans       | java.beans.PropertyChangeEvent        | java.beans.PropertyChangeListener        |
+  | Java AWT        | java.awt.event.MouseEvent             | java.awt.event.MouseListener             |
+  | Java Swing      | javax.swing.event.MenuEvent           | javax.swing.event.MenuListener           |
+  | Java Preference | java.util.prefs.PreferenceChangeEvent | java.util.prefs.PreferenceChangeListener |
+
+  
+
+### 17.3  面向注解的事件/监听器设计模式
+
+
+
+
+
+### 17.4 Spring标准事件 ApplicationEvent
+
+- org.springframework.context.ApplicationEvent
+
+  ```java
+  package org.springframework.context;
+  
+  import java.util.EventObject;
+  public abstract class ApplicationEvent extends EventObject {
+  
+  	/** use serialVersionUID from Spring 1.2 for interoperability */
+  	private static final long serialVersionUID = 7099057708183571937L;
+  
+  	/** System time when the event happened */
+  	private final long timestamp;
+  
+  	public ApplicationEvent(Object source) {
+  		super(source);
+  		this.timestamp = System.currentTimeMillis();
+  	}
+  
+  	public final long getTimestamp() {
+  		return this.timestamp;
+  	}
+  }
+  ```
+
+  相对于java的EventObject 而言 ApplicationEvent 只增加了`timestamp`事件发生时间
+
+
+
+### 17.5 基于注解的Spring事件监听器
+
+- org.springframework.context.event.EventListener
+
+  | 特性                 | 说明                                     |
+  | -------------------- | ---------------------------------------- |
+  | 设计特点             | 支持多ApplicationEvent类型，无需接口约束 |
+  | 注解目标             | 方法                                     |
+  | 是否支持异步执行     | 支持                                     |
+  | 是否支持泛型类型事件 | 支持                                     |
+  | 是否支持顺序控制     | 支持，配合@Order注解控制                 |
+
+  
+
+### 17.6 Spring 事件发布器
+
+- 方法一：通过 org.springframework.context.ApplicationEventPublisher 发布Spring事件（事件发布）
+  - 获取ApplicationEventPublisher
+    - 依赖注入
+- 方法二：通过 org.springframework.context.event.ApplicationEventMulticaster 发布Spring事件 （事件广播）
+  - 获取ApplicationEventMulticaster 
+    - 依赖注入
+    - 依赖查找
+
+
+
+### 17.7 Spring 层次性上下文事件传播
+
+- 发生说明
+
+  当Spring应用出现多层次Spring应用上下文（ApplicationContext）时，如Spring WebMVC 、Spring Boot或Spring Cloud场景下，由子ApplicationContext发起Spring事件可能会传递到其Parent ApplicatoinContext（知道Root）的过程
+
+  
+
+- 如何避免
+
+  - 定位Spring事件源（ApplicationContex）进行过滤处理
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
